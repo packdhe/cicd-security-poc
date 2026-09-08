@@ -1,0 +1,18 @@
+rules:
+  # ── Pull curated rulesets from the Semgrep Registry ──────────────────────────
+  - id: semgrep-security-audit
+    options:
+      # Use Semgrep's maintained security packs
+      # These are resolved at scan time — no local copy needed
+    patterns:
+      - pattern: "..."   # placeholder; real rules come from the configs below
+
+# Run with the following registry packs (passed via --config in Jenkinsfile):
+# p/owasp-top-ten
+# p/python
+# p/secrets
+# p/docker
+#
+# The Jenkinsfile uses:  semgrep scan --config .semgrep.yml
+# To also pull registry packs, update the Jenkinsfile flag to:
+#   --config .semgrep.yml --config p/owasp-top-ten --config p/secrets

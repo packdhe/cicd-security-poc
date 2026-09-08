@@ -1,0 +1,17 @@
+[extend]
+# Extend the default gitleaks ruleset
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+    '''\.gitleaks\.toml''',
+    '''security-reports/''',
+]
+
+# Example: add a custom rule on top of defaults
+[[rules]]
+id          = "custom-internal-token"
+description = "Detects internal API tokens"
+regex       = '''INTERNAL_TOKEN_[A-Z0-9]{32}'''
+tags        = ["secret", "internal"]
