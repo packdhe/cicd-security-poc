@@ -2,9 +2,9 @@ name: Security Pipeline
 
 on:
   push:
-    branches: [main, master]
+    branches: [dev, uat, main]
   pull_request:
-    branches: [main, master]
+    branches: [dev, uat, main]
 
 env:
   APP_IMAGE: sample-app:${{ github.run_number }}
@@ -12,7 +12,7 @@ env:
 
 jobs:
 
-  # ── 1. Gitleaks – secret scanning ─────────────────────────────────────────
+  # ── 1. Gitleaks – all branches ─────────────────────────────────────────────
   gitleaks:
     name: Gitleaks
     runs-on: ubuntu-22.04
@@ -34,7 +34,7 @@ jobs:
           name: gitleaks-report
           path: gitleaks-report.json
 
-  # ── 2. Semgrep – SAST ──────────────────────────────────────────────────────
+  # ── 2. Semgrep – all branches ──────────────────────────────────────────────
   semgrep:
     name: Semgrep
     runs-on: ubuntu-22.04
@@ -60,10 +60,11 @@ jobs:
           name: semgrep-report
           path: ${{ env.REPORT_DIR }}/semgrep-report.json
 
-  # ── 3. SonarQube – SAST + Quality Gate ────────────────────────────────────
+  # ── 3. SonarQube – uat and main only ──────────────────────────────────────
   sonarqube:
     name: SonarQube
     runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/uat' || github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -85,10 +86,11 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-  # ── 4. OWASP Dependency-Check – SCA ───────────────────────────────────────
+  # ── 4. Dependency-Check – uat and main only ────────────────────────────────
   dependency-check:
     name: Dependency Check
     runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/uat' || github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 
@@ -106,10 +108,11 @@ jobs:
           name: dependency-check-report
           path: reports/
 
-  # ── 5 & 6. Build Image → Trivy → OWASP ZAP ────────────────────────────────
+  # ── 5 & 6. Build → Trivy → ZAP – uat and main only ───────────────────────
   container-scan-and-dast:
     name: Build + Trivy + ZAP
     runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/uat' || github.ref == 'refs/heads/main'
     needs: [gitleaks, semgrep, sonarqube, dependency-check]
     steps:
       - uses: actions/checkout@v4
@@ -159,16 +162,37 @@ jobs:
         if: always()
         run: docker rm -f sample-app || true
 
-  # ── 7. Deploy ──────────────────────────────────────────────────────────────
-  deploy:
-    name: Deploy
+  # ── 7. Deploy dev – dev branch only ───────────────────────────────────────
+  deploy-dev:
+    name: Deploy to Dev
     runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/dev'
+    needs: [gitleaks, semgrep]
+    steps:
+      - name: Deploy to Dev
+        run: echo "✅ Dev gates passed — deploying ${{ env.APP_IMAGE }} to dev"
+        # Add your dev deploy commands here
+
+  # ── 8. Deploy uat – uat branch only ───────────────────────────────────────
+  deploy-uat:
+    name: Deploy to UAT
+    runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/uat'
+    needs: [container-scan-and-dast]
+    environment: uat
+    steps:
+      - name: Deploy to UAT
+        run: echo "✅ All gates passed — deploying ${{ env.APP_IMAGE }} to UAT"
+        # Add your UAT deploy commands here
+
+  # ── 9. Deploy production – main branch only ───────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/main'
     needs: [container-scan-and-dast]
     environment: production
     steps:
-      - name: Deploy
-        run: echo "✅ All security gates passed — deploying ${{ env.APP_IMAGE }}"
-        # Replace with your actual deploy steps:
-        # - docker stack deploy
-        # - kubectl apply
-        # - aws ecs update-service
+      - name: Deploy to Production
+        run: echo "✅ All gates passed — deploying ${{ env.APP_IMAGE }} to production"
+        # Add your production deploy commands here
