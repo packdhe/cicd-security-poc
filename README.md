@@ -100,6 +100,92 @@ GitHub Actions triggers automatically on every push to `main`.
 
 ---
 
+## Branching Strategy
+
+```
+feature/* → PR → dev → PR → uat → PR → main (production)
+```
+
+| Branch | Security Gates | Deploy |
+|--------|---------------|--------|
+| `dev` | Gitleaks + Semgrep | Auto |
+| `uat` | All 6 gates | Auto |
+| `main` | All 6 gates | Manual approval |
+
+### 1. Create branches
+
+```bash
+git checkout -b uat && git push origin uat
+git checkout -b dev && git push origin dev
+git checkout main
+```
+
+### 2. Create GitHub Environments
+
+Go to: **Settings → Environments**
+
+- Click **New environment** → name: `uat` → click **Configure environment** → Save
+- Click **New environment** → name: `production` → click **Configure environment**
+  - Enable **Required reviewers** → add your GitHub username → Save
+
+> Note: Required reviewers on `production` is only available on public repos or GitHub Team plan.
+
+### 3. Setup Branch Protection Rules
+
+Go to: **Settings → Branches → Add branch ruleset**
+
+**protect-main** (target: `main`)
+
+| Setting | Value |
+|---------|-------|
+| Require a pull request before merging | ✅ Enable |
+| Required approvals | `1` |
+| Require status checks to pass | ✅ Enable |
+| Required status checks | `Gitleaks`, `Semgrep`, `SonarQube`, `Dependency Check`, `Build + Trivy + ZAP` |
+| Block force pushes | ✅ Enable |
+| Restrict deletions | ✅ Enable |
+
+**protect-uat** (target: `uat`)
+
+| Setting | Value |
+|---------|-------|
+| Require a pull request before merging | ✅ Enable |
+| Required approvals | `1` |
+| Require status checks to pass | ✅ Enable |
+| Required status checks | `Gitleaks`, `Semgrep`, `SonarQube`, `Dependency Check`, `Build + Trivy + ZAP` |
+| Block force pushes | ✅ Enable |
+| Restrict deletions | ✅ Enable |
+
+**protect-dev** (target: `dev`)
+
+| Setting | Value |
+|---------|-------|
+| Require a pull request before merging | ✅ Enable |
+| Required approvals | `1` |
+| Require status checks to pass | ✅ Enable |
+| Required status checks | `Gitleaks`, `Semgrep` |
+| Block force pushes | ✅ Enable |
+| Restrict deletions | ✅ Enable |
+
+### 4. Normal development flow
+
+```bash
+# Create feature branch from dev
+git checkout dev
+git checkout -b feature/my-feature
+
+# Make changes, commit, push
+git add .
+git commit -m "feat: my feature"
+git push origin feature/my-feature
+
+# Open PR: feature/* → dev (triggers Gitleaks + Semgrep)
+# Open PR: dev → uat (triggers all 6 gates)
+# Open PR: uat → main (triggers all 6 gates + approval)
+```
+
+---
+
 ## Customising Security Thresholds
 
 | File | What to change |
