@@ -164,6 +164,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-22.04
     needs: [container-scan-and-dast]
+    environment: production
     steps:
       - name: Deploy
         run: echo "✅ All security gates passed — deploying ${{ env.APP_IMAGE }}"
