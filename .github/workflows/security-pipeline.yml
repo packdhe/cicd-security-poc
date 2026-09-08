@@ -76,8 +76,9 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
             -Dsonar.projectKey=cicd-security-poc
-            -Dsonar.projectName="CICD Security POC"
             -Dsonar.sources=sample-app
             -Dsonar.exclusions=**/node_modules/**,**/*.test.*,security-reports/**
             -Dsonar.qualitygate.wait=true
