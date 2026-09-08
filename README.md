@@ -186,6 +186,98 @@ git push origin feature/my-feature
 
 ---
 
+## Testing the Full Deploy Flow (dev → uat → production)
+
+### Overview
+
+```
+feature/* → PR → dev (Gitleaks + Semgrep) → PR → uat (All 6 gates) → PR → main (All 6 gates + approval)
+```
+
+---
+
+### Step 1: Deploy to Dev
+
+```bash
+# Start from dev branch
+git checkout dev
+git pull origin dev
+
+# Create a feature branch
+git checkout -b feature/my-feature
+
+# Make a change
+echo "# test" >> sample-app/app.py
+git add .
+git commit -m "feat: test deploy flow"
+git push origin feature/my-feature
+```
+
+On GitHub:
+1. Open PR → **base:** `dev` ← **compare:** `feature/my-feature`
+2. Wait for **Gitleaks + Semgrep** to pass ✅
+3. Click **Merge pull request**
+4. Pipeline triggers on `dev` → **Deploy to Dev** runs automatically ✅
+
+---
+
+### Step 2: Deploy to UAT
+
+```bash
+# Switch to dev, pull latest
+git checkout dev
+git pull origin dev
+```
+
+On GitHub:
+1. Open PR → **base:** `uat` ← **compare:** `dev`
+2. Wait for **all 6 security gates** to pass ✅
+3. Click **Merge pull request**
+4. Pipeline triggers on `uat` → **Deploy to UAT** runs automatically ✅
+
+---
+
+### Step 3: Deploy to Production
+
+```bash
+# Switch to uat, pull latest
+git checkout uat
+git pull origin uat
+```
+
+On GitHub:
+1. Open PR → **base:** `main` ← **compare:** `uat`
+2. Wait for **all 6 security gates** to pass ✅
+3. Click **Merge pull request**
+4. Pipeline triggers on `main` → **Deploy to Production** waits for manual approval
+5. Reviewer receives email notification → clicks link → approves on GitHub ✅
+6. Deploy to production runs ✅
+
+---
+
+### What each branch triggers
+
+| Event | Branch | Gates triggered | Deploy |
+|-------|--------|----------------|--------|
+| PR opened | `feature/*` → `dev` | Gitleaks + Semgrep | ❌ No deploy |
+| PR merged | → `dev` | Gitleaks + Semgrep | ✅ Auto deploy to dev |
+| PR opened | `dev` → `uat` | All 6 gates | ❌ No deploy |
+| PR merged | → `uat` | All 6 gates | ✅ Auto deploy to UAT |
+| PR opened | `uat` → `main` | All 6 gates | ❌ No deploy |
+| PR merged | → `main` | All 6 gates | ⏸ Waits for approval |
+| Approved | `main` | - | ✅ Deploy to production |
+
+---
+
+### Verify pipeline results
+
+After each deploy, check:
+- **GitHub Actions** → `https://github.com/<your-username>/cicd-security-poc/actions`
+- **Security reports** → Actions run → scroll down → **Artifacts**
+- **SonarQube findings** → `http://<vps-ip>:9000`
+
+---
+
 ## Customising Security Thresholds
 
 | File | What to change |
