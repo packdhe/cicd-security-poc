@@ -6,7 +6,7 @@ Deployment is blocked unless every gate passes.
 ```
 Checkout → Gitleaks → Semgrep → SonarQube → Dependency-Check → Build Image → Trivy → OWASP ZAP → Deploy
 ```
-
+test
 ---
 
 ## Security Gates
