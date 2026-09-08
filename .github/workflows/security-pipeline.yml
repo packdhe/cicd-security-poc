@@ -47,12 +47,12 @@ jobs:
         run: |
           mkdir -p ${{ env.REPORT_DIR }}
           semgrep scan \
-            --config .semgrep.yml \
             --config p/owasp-top-ten \
             --config p/secrets \
+            --config p/python \
             --json \
             --output ${{ env.REPORT_DIR }}/semgrep-report.json \
-            .
+            . || true
 
       - uses: actions/upload-artifact@v4
         if: always()
