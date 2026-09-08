@@ -69,6 +69,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug secrets
+        run: |
+          echo "SONAR_HOST_URL is set: ${{ secrets.SONAR_HOST_URL != '' }}"
+          echo "SONAR_TOKEN is set: ${{ secrets.SONAR_TOKEN != '' }}"
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
